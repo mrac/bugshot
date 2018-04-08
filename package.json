@@ -1,0 +1,30 @@
+{
+  "name": "fault-injection",
+  "version": "1.0.0",
+  "description": "Fault-injection for React-TypeScript-Jest testing",
+  "main": "src/fault-injection.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrac/fault-injection.git"
+  },
+  "keywords": [
+    "fault",
+    "injection",
+    "unit",
+    "tests",
+    "test",
+    "testing",
+    "react",
+    "jest",
+    "typescript"
+  ],
+  "author": "Michal Raczkowski",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mrac/fault-injection/issues"
+  },
+  "homepage": "https://github.com/mrac/fault-injection#readme"
+}
