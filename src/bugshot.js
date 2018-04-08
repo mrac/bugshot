@@ -36,9 +36,9 @@ const config = require(currentDir + '/' + args.config);
 
 // --config
 // --t
-// --keep
 // --p
 // --o
+// --keep
 // --single
 
 main();

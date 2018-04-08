@@ -12,6 +12,21 @@ npm install --save git+https://github.com/mrac/bugshot.git
 
 ```
 ./bin/bugshot.js --config=./path/to/my/bugshot.config.js
+
+### Parameters
+
+#### t
+
+A single file.
+
+```
+./bin/bugshot.js --config=./path/to/my/bugshot.config.js --t=my-text-area
+```
+
+#### p
+
+```
+./bin/bugshot.js --config=./path/to/my/bugshot.config.js --t=my-text-area --p=children
 ```
 
 ### Config example
