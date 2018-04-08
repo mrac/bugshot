@@ -5,7 +5,7 @@ Bugshot is a testing tool for React/TypeScript/Jest applications that finds issu
 ### To install
 
 ```
-npm install --save git+https://github.com/mrac/bugshot.git
+npm install --save-dev git+https://github.com/mrac/bugshot.git
 ```
 
 ### To run

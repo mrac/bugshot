@@ -2,12 +2,13 @@
   "name": "bugshot",
   "version": "1.0.0",
   "description": "Fault-injection for React-TypeScript-Jest testing",
-  "main": "src/bugshot.js",
+  "main": "./src/bugshot.js",
   "bin": {
     "bugshot": "./bin/bugshot"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "bin/bugshot"
   },
   "repository": {
     "type": "git",
