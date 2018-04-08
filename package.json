@@ -1,19 +1,20 @@
 {
-  "name": "fault-injection",
+  "name": "bugshot",
   "version": "1.0.0",
   "description": "Fault-injection for React-TypeScript-Jest testing",
-  "main": "src/fault-injection.js",
+  "main": "src/bugshot.js",
   "bin": {
-    "fault-injection": "./bin/fault-injection"
+    "bugshot": "./bin/bugshot"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mrac/fault-injection.git"
+    "url": "git+https://github.com/mrac/bugshot.git"
   },
   "keywords": [
+    "bugshot",
     "fault",
     "injection",
     "unit",
@@ -22,14 +23,18 @@
     "testing",
     "react",
     "jest",
-    "typescript"
+    "typescript",
+    "bug",
+    "bugs",
+    "shot",
+    "coverage"
   ],
   "author": "Michal Raczkowski",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mrac/fault-injection/issues"
+    "url": "https://github.com/mrac/bugshot/issues"
   },
-  "homepage": "https://github.com/mrac/fault-injection#readme",
+  "homepage": "https://github.com/mrac/bugshot#readme",
   "dependencies": {
     "jest": "22.4.3",
     "shelljs": "0.8.1"
