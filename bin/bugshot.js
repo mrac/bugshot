@@ -32,53 +32,79 @@ if (!args.config) {
   throw new Error('--config parameter is required');
 }
 
+if ('keep' in args) {
+  args.keep = true;
+}
+
+if ('occurances' in args) {
+  args.occurances = true;
+}
+
 const config = require(currentDir + '/' + args.config);
 
 // --config
 // --t
-// --keep
 // --p
 // --o
-// --single
+// --keep
+// --occurances
 
 main();
 
 async function main() {
-  const filePaths = await readFilePaths();
+  const sourcePaths = await readSourcePaths();
+  const reports = {};
 
-  for (i = 0; i < filePaths.length; i++) {
-    const { componentName, componentNameL, path } = parseComponentPath(filePaths[i]);
+  for (i = 0; i < sourcePaths.length; i++) {
+    const { componentName, componentNameL, dir } = parseComponentPath(sourcePaths[i]);
 
     if (!args.t || (componentNameL + '.test.tsx').match(args.t)) {
-      const sourceCode = readSourceFile(path, componentNameL);
-      const testSource = readTestFile(path, componentNameL);
-      const props = parseProps(sourceCode, componentName);
+      if (!reports[dir]) {
+        reports[dir] = {};
+      }
+
+      const sourceCode = readSourceFile(dir, componentNameL);
+      const testSource = readTestFile(reports, dir, componentNameL);
+      const props = parseProps(reports, dir, sourceCode, componentName);
 
       if (props && testSource) {
-        try {
-          await Promise.all(
-            props.map(async prop => {
-              if (!args.p || prop.propName.toLowerCase() === args.p.toLowerCase()) {
+        await Promise.all(
+          props.map(async prop => {
+            const propName = prop.propName;
+            try {
+              if (!args.p || propName.toLowerCase() === args.p.toLowerCase()) {
                 const pattern = detectPropPattern(sourceCode, prop);
-                if (args.single) {
-                  await reportSingleProperty(path, sourceCode, testSource, componentNameL, pattern);
+                if (args.occurances) {
+                  reports[dir][propName] = await reportPropertySeparateOccurances(
+                    dir,
+                    sourceCode,
+                    testSource,
+                    componentNameL,
+                    pattern
+                  );
                 } else {
-                  await reportProperty(path, sourceCode, testSource, componentNameL, pattern);
+                  reports[dir][propName] = await reportProperty(dir, sourceCode, testSource, componentNameL, pattern);
                 }
               }
-            })
-          );
-        } catch (err) {
-          console.log('\x1b[31m%s\x1b[0m', componentName + '   -  fault-injection error  -  ' + err.message);
-        }
+            } catch (err) {
+              reports[dir][propName] = {
+                type: 'warning',
+                problem: 'fault-injection error',
+                problemMessage: err.message
+              };
+            }
+          })
+        );
       }
     }
   }
+  //  console.log('reports: ', reports);
+  showReport(reports);
 }
 
 // ------------------------------------------------------------
 
-async function readFilePaths() {
+async function readSourcePaths() {
   return await glob(config.sourceFiles, {
     ignore: config.ignore
   });
@@ -90,34 +116,37 @@ function kebabCase2CamelCase(kebabCase) {
   return capitalizedWords.join('');
 }
 
-function parseComponentPath(componentFullPath) {
-  const componentNameL = pathModule.parse(componentFullPath).name;
+function parseComponentPath(componentPath) {
+  const componentNameL = pathModule.parse(componentPath).name;
   const componentName = kebabCase2CamelCase(componentNameL);
-  const path = pathModule.dirname(componentFullPath) + '/';
-  return { path, componentName, componentNameL };
+  const dir = pathModule.dirname(componentPath) + '/';
+  return { dir, componentName, componentNameL };
 }
 
-function readSourceFile(path, componentNameL) {
-  const inputPath = `${path}${componentNameL}.tsx`;
+function readSourceFile(dir, componentNameL) {
+  const inputPath = `${dir}${componentNameL}.tsx`;
   const buffer = fs.readFileSync(inputPath);
   const sourceCode = buffer.toString();
   return sourceCode;
 }
 
-function readTestFile(path, componentNameL) {
+function readTestFile(reports, dir, componentNameL) {
   let testSource;
 
   try {
-    const testFilename = `${path}${componentNameL}.test.tsx`;
+    const testFilename = `${dir}${componentNameL}.test.tsx`;
     const testBuffer = fs.readFileSync(testFilename);
     testSource = testBuffer.toString();
   } catch (err) {
-    console.log('\x1b[31m%s\x1b[0m', path + componentNameL + '   - no test file');
+    reports[dir]['.'] = {
+      type: 'error',
+      problem: 'no test file'
+    };
   }
   return testSource;
 }
 
-function parseProps(sourceCode, componentName) {
+function parseProps(reports, dir, sourceCode, componentName) {
   let props;
 
   try {
@@ -126,9 +155,11 @@ function parseProps(sourceCode, componentName) {
     const propsReg = new RegExp(`(type|interface) ${propsType} (= )?({(.*\n)*});?`);
     const propsMatch = sourceCode.match(propsReg);
     let propsSrc = propsMatch && propsMatch[0];
+
     if (!propsSrc) {
-      throw new Error(propsType + ' undetectable.');
+      throw new Error(propsType + ' type cannot be found');
     }
+
     const split = propsSrc.split(/\n};?/);
     propsSrc = split[0] + '\n}';
 
@@ -143,7 +174,11 @@ function parseProps(sourceCode, componentName) {
       return { propName, optional, type };
     });
   } catch (err) {
-    console.log('\x1b[31m%s\x1b[0m', componentName + '   - parsing error  -  ' + err.message);
+    reports[dir]['.'] = {
+      type: 'warning',
+      problem: 'parse error',
+      problemMessage: err.message
+    };
   }
 
   return props;
@@ -157,6 +192,7 @@ function detectPropPattern(sourceCode, prop) {
       const regexp = new RegExp(`([^a-zA-Z0-9])(${propPattern})([^a-zA-Z0-9])`, 'g');
       const faultMatch = sourceCode.match(regexp);
       return {
+        type: 'warning',
         propName,
         type,
         regexp,
@@ -189,11 +225,11 @@ function replacePattern(pattern) {
     return (s1, s2, s3) => `${s1}${firstItem}${s3}`;
   }
 
-  if (pattern.type.match(/[A-Za-z0-9]\[\]$/)) {
+  if (pattern.type.match(/[A-Z][A-Za-z0-9]+\[\]$/)) {
     return (s1, s2, s3) => `${s1}[]${s3}`;
   }
 
-  if (pattern.type.match(/^[A-Za-z0-9]+$/)) {
+  if (pattern.type.match(/^[A-Z][A-Za-z0-9]+$/)) {
     return (s1, s2, s3) => `${s1}(null)${s3}`;
   }
 
@@ -207,7 +243,7 @@ function replacePattern(pattern) {
     case 'boolean':
       return (s1, s2, s3) => `${s1}!${s2}${s3}`;
     case 'string':
-      return (s1, s2, s3) => `${s1}(${s2} + \'hey\')${s3}`;
+      return (s1, s2, s3) => `${s1}(${s2} + 'hey')${s3}`;
     case 'number':
       return (s1, s2, s3) => `${s1}0${s3}`;
     case 'RegExp':
@@ -234,9 +270,9 @@ function injectFault(sourceCode, pattern, caseIndex) {
   return faultCode;
 }
 
-function writeTestFile(path, outputFilename, newTestSource) {
+function writeTestFile(dir, outputFilename, newTestSource) {
   const newTestFilename = `${outputFilename}.test`;
-  const newTestPath = `${path}${newTestFilename}.tsx`;
+  const newTestPath = `${dir}${newTestFilename}.tsx`;
   fs.writeFileSync(newTestPath, newTestSource);
   return newTestPath;
 }
@@ -247,8 +283,8 @@ function generateTestSource(componentNameL, outputFilename, testSource) {
   return newTestSource;
 }
 
-function writeSourceFile(path, outputFilename, faultCode) {
-  const outputPath = `${path}${outputFilename}.tsx`;
+function writeSourceFile(dir, outputFilename, faultCode) {
+  const outputPath = `${dir}${outputFilename}.tsx`;
   fs.writeFileSync(outputPath, faultCode);
   return outputPath;
 }
@@ -258,17 +294,41 @@ function deleteFiles(outputPath, newTestPath) {
   fs.unlinkSync(newTestPath);
 }
 
-async function report(newTestPath, testFilename, propName, occuranceIndex) {
+async function runTest(newTestPath, testFilename, propName, occuranceIndex) {
   const jestRes = await jest.runCLI({ _: [`${newTestPath}`] }, [config.jestConfig]);
-  const total = jestRes.results.numTotalTestSuites;
-  const passing = jestRes.results.numPassedTestSuites;
-  const failing = total - passing;
-  const coverage = failing / total;
-  const occuranceStr = occuranceIndex !== undefined ? occuranceIndex + 1 + '  ' : '';
-  console.log(`\r${testFilename}  ${propName}  ${occuranceStr}`, (coverage * 100).toFixed(0) + '%');
+  const results = jestRes.results;
+
+  if (results.numRuntimeErrorTestSuites) {
+    type = 'warning';
+  } else {
+    if (!results.numFailedTestSuites) {
+      type = 'error';
+    } else {
+      type = 'info';
+    }
+  }
+
+  const result = {
+    type,
+    test: testFilename,
+    prop: propName,
+    failed: results.numFailedTestSuites,
+    error: results.numRuntimeErrorTestSuites,
+    errorMessage: results.numRuntimeErrorTestSuites && results.testResults[0].failureMessage
+  };
+
+  process.stdout.clearLine();
+  process.stdout.write('\r' + testFilename + '    ');
+
+  if (occuranceIndex !== undefined) {
+    result.occurance = occuranceIndex + 1;
+  }
+
+  return result;
 }
 
-async function reportSingleProperty(path, sourceCode, testSource, componentNameL, pattern) {
+async function reportPropertySeparateOccurances(dir, sourceCode, testSource, componentNameL, pattern) {
+  const propReports = [];
   if (replacePattern(pattern)) {
     for (let occuranceIndex = 0; occuranceIndex < pattern.occurances; occuranceIndex++) {
       if (!args.o || Number(args.o) === occuranceIndex + 1) {
@@ -276,36 +336,99 @@ async function reportSingleProperty(path, sourceCode, testSource, componentNameL
         const outputFilename = `${componentNameL}${filenameFragment}`;
 
         const faultCode = injectFault(sourceCode, pattern, occuranceIndex);
-        const outputPath = writeSourceFile(path, outputFilename, faultCode);
+        const outputPath = writeSourceFile(dir, outputFilename, faultCode);
         const newTestSource = generateTestSource(componentNameL, outputFilename, testSource);
-        const newTestPath = writeTestFile(path, outputFilename, newTestSource);
-        const testFilename = `${path}${componentNameL}.test.tsx`;
-        await report(newTestPath, testFilename, pattern.propName, occuranceIndex);
+        const newTestPath = writeTestFile(dir, outputFilename, newTestSource);
+        const testFilename = `${dir}${componentNameL}.test.tsx`;
+        const propReport = await runTest(newTestPath, testFilename, pattern.propName, occuranceIndex);
+        propReports.push(propReport);
+
         if (!args.keep) {
           deleteFiles(outputPath, newTestPath);
         }
       }
     }
   } else {
-    console.log('\x1b[31m%s\x1b[0m', path + componentNameL + '  - unrecognised property type: ' + pattern.propName);
+    error(dir + componentNameL + '  - Unrecognised property type: ' + pattern.propName);
   }
 }
 
-async function reportProperty(path, sourceCode, testSource, componentNameL, pattern) {
+async function reportProperty(dir, sourceCode, testSource, componentNameL, pattern) {
+  let propReport = {};
   if (replacePattern(pattern)) {
     const filenameFragment = `.${pattern.propName}.fault`;
     const outputFilename = `${componentNameL}${filenameFragment}`;
 
     const faultCode = injectFault(sourceCode, pattern);
-    const outputPath = writeSourceFile(path, outputFilename, faultCode);
+    const outputPath = writeSourceFile(dir, outputFilename, faultCode);
     const newTestSource = generateTestSource(componentNameL, outputFilename, testSource);
-    const newTestPath = writeTestFile(path, outputFilename, newTestSource);
-    const testFilename = `${path}${componentNameL}.test.tsx`;
-    await report(newTestPath, testFilename, pattern.propName);
+    const newTestPath = writeTestFile(dir, outputFilename, newTestSource);
+    const testFilename = `${dir}${componentNameL}.test.tsx`;
+    propReport = await runTest(newTestPath, testFilename, pattern.propName);
+
     if (!args.keep) {
       deleteFiles(outputPath, newTestPath);
     }
   } else {
-    console.log('\x1b[31m%s\x1b[0m', path + componentNameL + '  - unrecognised property type: ' + pattern.propName);
+    propReport = {
+      type: 'warning',
+      prop: pattern.propName,
+      problem: 'Unrecognised property type',
+      problemMessage: pattern.type
+    };
+  }
+  return propReport;
+}
+
+function error(...props) {
+  const str = props.filter(s => s).join(' - ');
+  console.log('\x1b[31m%s\x1b[0m', str);
+}
+
+function warning(...props) {
+  const str = props.filter(s => s).join(' - ');
+  console.log('\x1b[33m%s\x1b[0m', str);
+}
+
+function log(...props) {
+  const str = props.filter(s => s).join(' - ');
+  console.log(str);
+}
+
+function showReport(reports) {
+  process.stdout.clearLine();
+  process.stdout.write('\r');
+
+  Object.keys(reports).forEach(dir => {
+    const report = reports[dir];
+    const general = report['.'];
+
+    if (general) {
+      logReport(general.type, dir, general.problem, general.problemMessage);
+    } else {
+      Object.keys(report)
+        .map(propName => report[propName])
+        .filter(propReport => {
+          return !propReport.failed || propReport.problem;
+        })
+        .forEach(propReport => {
+          if (propReport.problem) {
+            logReport(propReport.type, dir, propReport.prop, propReport.problem, propReport.problemMessage);
+          } else {
+            logReport(propReport.type, dir, propReport.prop, 'False negative');
+          }
+        });
+    }
+  });
+}
+
+function logReport(type, ...props) {
+  switch (type) {
+    case 'warning':
+      return warning(...props);
+    case 'error':
+      return error(...props);
+    default:
+      return log(...props);
   }
 }
