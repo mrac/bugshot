@@ -4,7 +4,7 @@
   "description": "Fault-injection for React-TypeScript-Jest testing",
   "main": "./src/bugshot.js",
   "bin": {
-    "bugshot": "./bin/bugshot"
+    "bugshot": "./bin/bugshot.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
