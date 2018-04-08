@@ -8,6 +8,8 @@ var sh = require('shelljs');
 
 const currentDir = sh.pwd().stdout;
 
+const TEMP_FILE_POSTFIX = 'bugshot-fault';
+
 process.env.NODE_ENV = 'test';
 
 // Makes the script crash on unhandled rejections instead of silently
@@ -75,15 +77,9 @@ async function main() {
               if (!args.p || propName.toLowerCase() === args.p.toLowerCase()) {
                 const pattern = detectPropPattern(sourceCode, prop);
                 if (args.occurances) {
-                  reports[dir][propName] = await reportPropertySeparateOccurances(
-                    dir,
-                    sourceCode,
-                    testSource,
-                    componentNameL,
-                    pattern
-                  );
+                  await reportPropertySeparateOccurances(reports, dir, sourceCode, testSource, componentNameL, pattern);
                 } else {
-                  reports[dir][propName] = await reportProperty(dir, sourceCode, testSource, componentNameL, pattern);
+                  await reportProperty(reports, dir, sourceCode, testSource, componentNameL, pattern);
                 }
               }
             } catch (err) {
@@ -98,8 +94,21 @@ async function main() {
       }
     }
   }
-  //  console.log('reports: ', reports);
+
+  const testReport = await runTests();
+
+  testReport.results.forEach(result => {
+    if (!reports[result.dir]) {
+      reports[result.dir] = {};
+    }
+    reports[result.dir][result.prop] = result;
+  });
+
   showReport(reports);
+
+  if (!args.keep) {
+    deleteTemporaryFiles();
+  }
 }
 
 // ------------------------------------------------------------
@@ -289,9 +298,16 @@ function writeSourceFile(dir, outputFilename, faultCode) {
   return outputPath;
 }
 
-function deleteFiles(outputPath, newTestPath) {
-  fs.unlinkSync(outputPath);
-  fs.unlinkSync(newTestPath);
+async function deleteTemporaryFiles() {
+  const newSourceFiles = config.sourceFiles.replace(/\.tsx$/, `.${TEMP_FILE_POSTFIX}.tsx`);
+  const newTestFiles = config.sourceFiles.replace(/\.tsx$/, `.${TEMP_FILE_POSTFIX}.test.tsx`);
+
+  const newSourceFilePaths = await glob(newSourceFiles);
+  const newTestFilePaths = await glob(newTestFiles);
+
+  [...newSourceFilePaths, ...newTestFilePaths].forEach(path => {
+    fs.unlinkSync(path);
+  });
 }
 
 async function runTest(newTestPath, testFilename, propName, occuranceIndex) {
@@ -327,12 +343,80 @@ async function runTest(newTestPath, testFilename, propName, occuranceIndex) {
   return result;
 }
 
-async function reportPropertySeparateOccurances(dir, sourceCode, testSource, componentNameL, pattern) {
+async function runTests() {
+  const options = {};
+  if (args.t) {
+    options['_'] = [args.t];
+  }
+  const jestResult = (await jest.runCLI({ options }, [config.jestConfig])).results;
+
+  const errors = jestResult.numRuntimeErrorTestSuites;
+  const total = jestResult.numTotalTestSuites;
+  const failed = jestResult.numTotalTestSuites - jestResult.numPassedTestSuites;
+
+  const results = jestResult.testResults.map(jestResult => {
+    const faultTestFilePath = jestResult.testFilePath;
+    const path = '.' + faultTestFilePath.replace(currentDir, '');
+    const dir = pathModule.parse(path).dir + '/';
+    const tempFilename = pathModule.parse(path).name;
+    const fragmentsStr = tempFilename.replace(`.${TEMP_FILE_POSTFIX}.test`, '');
+    const fragments = fragmentsStr.split('.');
+    const component = fragments[0];
+    const prop = fragments[1];
+    const occurance = fragments[2];
+
+    let type, problem, problemMessage;
+
+    if (jestResult.testExecError) {
+      type = 'warning';
+      problem = 'runtime error';
+      problemMessage = jestResult.testExecError.message;
+    } else {
+      if (!jestResult.numFailingTests) {
+        type = 'error';
+        problem = 'false negative';
+      } else {
+        type = 'info';
+        problem = '';
+      }
+    }
+
+    const result = {
+      type,
+      dir,
+      problem,
+      component,
+      prop
+    };
+
+    if (occurance) {
+      result.occurance = occurance;
+    }
+
+    if (problemMessage) {
+      result.problemMessage = problemMessage;
+    }
+
+    return result;
+  });
+
+  const report = {
+    currentDir,
+    total,
+    failed,
+    coverage: Math.round(100 * failed / total) / 100,
+    results
+  };
+
+  return report;
+}
+
+async function reportPropertySeparateOccurances(reports, dir, sourceCode, testSource, componentNameL, pattern) {
   const propReports = [];
   if (replacePattern(pattern)) {
     for (let occuranceIndex = 0; occuranceIndex < pattern.occurances; occuranceIndex++) {
       if (!args.o || Number(args.o) === occuranceIndex + 1) {
-        const filenameFragment = `.${pattern.propName}-${occuranceIndex}.fault`;
+        const filenameFragment = `.${pattern.propName}-${occuranceIndex}.${TEMP_FILE_POSTFIX}`;
         const outputFilename = `${componentNameL}${filenameFragment}`;
 
         const faultCode = injectFault(sourceCode, pattern, occuranceIndex);
@@ -342,10 +426,6 @@ async function reportPropertySeparateOccurances(dir, sourceCode, testSource, com
         const testFilename = `${dir}${componentNameL}.test.tsx`;
         const propReport = await runTest(newTestPath, testFilename, pattern.propName, occuranceIndex);
         propReports.push(propReport);
-
-        if (!args.keep) {
-          deleteFiles(outputPath, newTestPath);
-        }
       }
     }
   } else {
@@ -353,10 +433,10 @@ async function reportPropertySeparateOccurances(dir, sourceCode, testSource, com
   }
 }
 
-async function reportProperty(dir, sourceCode, testSource, componentNameL, pattern) {
+async function reportProperty(reports, dir, sourceCode, testSource, componentNameL, pattern) {
   let propReport = {};
   if (replacePattern(pattern)) {
-    const filenameFragment = `.${pattern.propName}.fault`;
+    const filenameFragment = `.${pattern.propName}.${TEMP_FILE_POSTFIX}`;
     const outputFilename = `${componentNameL}${filenameFragment}`;
 
     const faultCode = injectFault(sourceCode, pattern);
@@ -364,20 +444,15 @@ async function reportProperty(dir, sourceCode, testSource, componentNameL, patte
     const newTestSource = generateTestSource(componentNameL, outputFilename, testSource);
     const newTestPath = writeTestFile(dir, outputFilename, newTestSource);
     const testFilename = `${dir}${componentNameL}.test.tsx`;
-    propReport = await runTest(newTestPath, testFilename, pattern.propName);
-
-    if (!args.keep) {
-      deleteFiles(outputPath, newTestPath);
-    }
+    // propReport = await runTest(newTestPath, testFilename, pattern.propName);
   } else {
-    propReport = {
+    reports[dir][pattern.propName] = {
       type: 'warning',
       prop: pattern.propName,
       problem: 'Unrecognised property type',
       problemMessage: pattern.type
     };
   }
-  return propReport;
 }
 
 function error(...props) {
@@ -403,19 +478,14 @@ function showReport(reports) {
     const report = reports[dir];
     const general = report['.'];
 
-    if (general) {
+    if (general && general.type !== 'info') {
       logReport(general.type, dir, general.problem, general.problemMessage);
     } else {
       Object.keys(report)
         .map(propName => report[propName])
-        .filter(propReport => {
-          return !propReport.failed || propReport.problem;
-        })
         .forEach(propReport => {
-          if (propReport.problem) {
+          if (propReport.type !== 'info') {
             logReport(propReport.type, dir, propReport.prop, propReport.problem, propReport.problemMessage);
-          } else {
-            logReport(propReport.type, dir, propReport.prop, 'False negative');
           }
         });
     }

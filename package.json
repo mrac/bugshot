@@ -1,6 +1,6 @@
 {
   "name": "bugshot",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Fault-injection for React-TypeScript-Jest testing",
   "main": "./src/bugshot.js",
   "bin": {
