@@ -11,7 +11,8 @@ npm install --save git+https://github.com/mrac/bugshot.git
 ### To run
 
 ```
-./bin/bugshot.js --config=./path/to/my/bugshot.config.js
+./bin/bugshot.js --config=./path/to/my/bugshot.config.js`
+```
 
 ### Parameters
 
