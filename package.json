@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Fault-injection for React-TypeScript-Jest testing",
   "main": "src/fault-injection.js",
+  "bin": {
+    "fault-injection": "./bin/fault-injection"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
