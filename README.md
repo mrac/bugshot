@@ -29,23 +29,23 @@ A single component file.
 A single component parameter.
 
 ```
-./bin/bugshot.js --config=./path/to/my/bugshot.config.js --t=my-text-area --p=children
+./bin/bugshot.js --config=./path/to/my/bugshot.config.json --t=my-text-area --p=children
 ```
 
 ### Config example
 
 ```
-module.exports = {
-  jestConfig: './path/to/my/jest.config.js',
-  sourceFiles: './src/client/components/common/**/*.tsx',
-  ignore: [
-    './src/client/components/common/**/*.bugshot-fault.tsx',
-    './src/client/components/common/**/*.bugshot-fault.test.tsx',
-    './src/client/components/common/**/*.story.tsx',
-    './src/client/components/common/**/*.test.tsx',
-    './src/client/components/common/**/*-styles.ts',
-    './src/client/components/common/**/*-styles.tsx'
+{
+  "baseDir": "../..",
+  "jestConfig: "./path/to/my/jest.config.js",
+  "sourceFiles: "./src/client/components/common/**/*.tsx",
+  "ignore": [
+    "./src/client/components/common/**/*.bugshot-fault.tsx",
+    "./src/client/components/common/**/*.bugshot-fault.test.tsx",
+    "./src/client/components/common/**/*.story.tsx",
+    "./src/client/components/common/**/*.test.tsx",
+    "./src/client/components/common/**/*-styles.ts",
+    "./src/client/components/common/**/*-styles.tsx"
   ]
-};
+}
 ```
-
