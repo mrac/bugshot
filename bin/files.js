@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const path = require("path");
 const glob = require("glob");
 const util = require("util");
+const fs = require("fs");
 async function getAbsoluteSourcePaths(config) {
     const globPr = util.promisify(glob);
     const baseDir = config.baseDir.replace(/\/?$/, '/');
@@ -15,6 +16,11 @@ async function getAbsoluteSourcePaths(config) {
     });
 }
 exports.getAbsoluteSourcePaths = getAbsoluteSourcePaths;
+function readFile(absolutePath) {
+    const buffer = fs.readFileSync(absolutePath);
+    return buffer.toString();
+}
+exports.readFile = readFile;
 function normalize(configDir, baseDir, filepath) {
     return path.normalize(configDir + baseDir + filepath);
 }

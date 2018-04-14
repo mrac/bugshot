@@ -32,7 +32,7 @@ async function main() {
             if (!reports[relativeSourcePath(sourcePath)]) {
                 reports[relativeSourcePath(sourcePath)] = {};
             }
-            const sourceCode = readSourceFile(dir, componentNameL);
+            const sourceCode = files_1.readFile(sourcePath);
             const testSource = readTestFile(reports, dir, componentNameL);
             const props = parseProps(reports, sourcePath, sourceCode, componentName);
             if (props && testSource) {
@@ -94,12 +94,6 @@ function parseComponentPath(componentPath) {
     const componentName = kebabCase2CamelCase(componentNameL);
     const dir = pathModule.dirname(componentPath) + '/';
     return { dir, componentName, componentNameL };
-}
-function readSourceFile(dir, componentNameL) {
-    const inputPath = `${dir}${componentNameL}.tsx`;
-    const buffer = fs.readFileSync(inputPath);
-    const sourceCode = buffer.toString();
-    return sourceCode;
 }
 function readTestFile(reports, dir, componentNameL) {
     let testSource;

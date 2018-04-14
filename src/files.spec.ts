@@ -8,7 +8,9 @@ chai.use(sinonChai);
 import * as glob from 'glob';
 import * as util from 'util';
 import * as path from 'path';
-import { getAbsoluteSourcePaths } from './files';
+import * as fs from 'fs';
+
+import { getAbsoluteSourcePaths, readFile } from './files';
 import { Config } from './config';
 
 describe('getAbsoluteSourcePaths', () => {
@@ -50,5 +52,32 @@ describe('getAbsoluteSourcePaths', () => {
   it('should return source paths', async () => {
     const sourcePaths = await getAbsoluteSourcePaths(config);
     expect(sourcePaths).to.equal(sourcePathsMock);
+  });
+});
+
+describe('readFile', () => {
+  let sandbox: sinon.SinonSandbox;
+  let readFileSyncStub;
+
+  const textMock = 'this is file content';
+
+  const bufferMock = {
+    toString: () => textMock
+  };
+
+  beforeEach(() => {
+    sandbox = sinon.sandbox.create();
+    readFileSyncStub = sandbox.stub(fs, 'readFileSync').callsFake(() => bufferMock);
+  });
+
+  afterEach(() => {
+    sandbox.restore();
+  });
+
+  it('should read file content', () => {
+    const filePath = '/absolute/path/to/file.tsx';
+    const content = readFile(filePath);
+    expect(readFileSyncStub).to.have.been.calledWith(filePath);
+    expect(content).to.equal(textMock);
   });
 });
