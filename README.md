@@ -11,7 +11,7 @@ npm install --save-dev git+https://github.com/mrac/bugshot.git
 ### To run
 
 ```
-./bin/bugshot.js --config=./path/to/my/bugshot.config.js`
+./bin/bugshot.js --config=./path/to/my/bugshot.config.json`
 ```
 
 ### Parameters
@@ -21,7 +21,7 @@ npm install --save-dev git+https://github.com/mrac/bugshot.git
 A single component file.
 
 ```
-./bin/bugshot.js --config=./path/to/my/bugshot.config.js --t=my-text-area
+./bin/bugshot.js --config=./path/to/my/bugshot.config.json --t=my-text-area
 ```
 
 #### p
