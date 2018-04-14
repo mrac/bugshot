@@ -97,18 +97,6 @@ async function main() {
 
 // ------------------------------------------------------------
 
-async function readSourcePaths() {
-  const sourceFiles = pathModule.normalize(config.dirs.configDir + config.baseDir + config.sourceFiles);
-
-  const ignoreFiles = config.ignore.map(path => {
-    return pathModule.normalize(config.dirs.configDir + config.baseDir + path);
-  });
-
-  return await glob(sourceFiles, {
-    ignore: ignoreFiles
-  });
-}
-
 function kebabCase2CamelCase(kebabCase) {
   const words = kebabCase.split('-');
   const capitalizedWords = words.map(word => word[0].toUpperCase() + word.substr(1).toLowerCase());
