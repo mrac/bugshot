@@ -7,7 +7,7 @@ import * as pathModule from 'path';
 import * as globCb from 'glob';
 import * as sh from 'shelljs';
 
-import { parseParams } from './params';
+import { getArguments } from './arguments';
 
 const glob = util.promisify(globCb);
 const currentDir = sh.pwd().stdout;
@@ -23,29 +23,7 @@ process.on('unhandledRejection', err => {
   throw err;
 });
 
-type Args = {
-  config: string;
-  t?: string;
-  p?: string;
-  o?: number;
-  keep?: boolean;
-  occurances?: boolean;
-};
-
-// PARSE ARGUMESTS
-const args = parseParams<Args>(process.argv);
-
-if (!args.config) {
-  throw new Error('--config parameter is required');
-}
-
-if ('keep' in args) {
-  args.keep = true;
-}
-
-if ('occurances' in args) {
-  args.occurances = true;
-}
+const args = getArguments(process.argv);
 
 const configPath = currentDir + '/' + args.config;
 const config = require(`${configPath}`);

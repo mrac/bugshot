@@ -7,7 +7,7 @@ const fs = require("fs");
 const pathModule = require("path");
 const globCb = require("glob");
 const sh = require("shelljs");
-const params_1 = require("./params");
+const arguments_1 = require("./arguments");
 const glob = util.promisify(globCb);
 const currentDir = sh.pwd().stdout;
 const TEMP_FILE_POSTFIX = 'bugshot-fault';
@@ -18,17 +18,7 @@ process.env.NODE_ENV = 'test';
 process.on('unhandledRejection', err => {
     throw err;
 });
-// PARSE ARGUMESTS
-const args = params_1.parseParams(process.argv);
-if (!args.config) {
-    throw new Error('--config parameter is required');
-}
-if ('keep' in args) {
-    args.keep = true;
-}
-if ('occurances' in args) {
-    args.occurances = true;
-}
+const args = arguments_1.getArguments(process.argv);
 const configPath = currentDir + '/' + args.config;
 const config = require(`${configPath}`);
 // --config
