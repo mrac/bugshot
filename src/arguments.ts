@@ -1,6 +1,6 @@
 import { parseParams } from './params';
 
-type Args = {
+export type Args = {
   config: string;
   t?: string;
   p?: string;
