@@ -3,14 +3,14 @@ import * as path from 'path';
 
 import { Args } from './arguments';
 
-type Config = {
-  baseDir: string;
-  jestConfig: string;
-  sourceFiles: string;
-  ignore: string[];
+export type Config = {
+  baseDir: string; // relative to config file
+  jestConfig: string; // relative to baseDir
+  sourceFiles: string; // relative to baseDir
+  ignore: string[]; // relative to baseDir
   dirs: {
-    currentDir: string;
-    configDir: string;
+    currentDir: string; // absolute
+    configDir: string; // absolute
   };
 };
 

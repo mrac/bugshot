@@ -9,6 +9,7 @@ const globCb = require("glob");
 const sh = require("shelljs");
 const arguments_1 = require("./arguments");
 const config_1 = require("./config");
+const files_1 = require("./files");
 const glob = util.promisify(globCb);
 const TEMP_FILE_POSTFIX = 'bugshot-fault';
 process.env.NODE_ENV = 'test';
@@ -22,7 +23,7 @@ const args = arguments_1.getArguments(process.argv);
 const config = config_1.getConfig(args, sh.pwd().stdout);
 main();
 async function main() {
-    const sourcePaths = await readSourcePaths();
+    const sourcePaths = await files_1.getAbsoluteSourcePaths(config);
     const reports = {};
     for (let i = 0; i < sourcePaths.length; i++) {
         const sourcePath = sourcePaths[i];

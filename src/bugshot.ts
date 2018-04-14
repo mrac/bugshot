@@ -9,6 +9,7 @@ import * as sh from 'shelljs';
 
 import { getArguments } from './arguments';
 import { getConfig } from './config';
+import { getAbsoluteSourcePaths } from './files';
 
 const glob = util.promisify(globCb);
 
@@ -35,7 +36,7 @@ interface Reports {
 }
 
 async function main() {
-  const sourcePaths = await readSourcePaths();
+  const sourcePaths = await getAbsoluteSourcePaths(config);
   const reports: Reports = {};
 
   for (let i = 0; i < sourcePaths.length; i++) {
