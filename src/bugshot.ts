@@ -1,11 +1,15 @@
 #!/usr/bin/env node
-const util = require('util');
-const jest = require('jest');
-const fs = require('fs');
-const pathModule = require('path');
-const glob = util.promisify(require('glob'));
-var sh = require('shelljs');
 
+import * as util from 'util';
+import * as jest from 'jest';
+import * as fs from 'fs';
+import * as pathModule from 'path';
+import * as globCb from 'glob';
+import * as sh from 'shelljs';
+
+import { parseParams } from './params';
+
+const glob = util.promisify(globCb);
 const currentDir = sh.pwd().stdout;
 
 const TEMP_FILE_POSTFIX = 'bugshot-fault';
@@ -19,16 +23,17 @@ process.on('unhandledRejection', err => {
   throw err;
 });
 
+type Args = {
+  config: string;
+  t?: string;
+  p?: string;
+  o?: number;
+  keep?: boolean;
+  occurances?: boolean;
+};
+
 // PARSE ARGUMESTS
-const args = {};
-process.argv.forEach(arg => {
-  const match = arg.match(/--?([^=]+)=(.*)/);
-  if (match) {
-    const key = match[1];
-    const value = match[2];
-    args[key] = value;
-  }
-});
+const args = parseParams<Args>(process.argv);
 
 if (!args.config) {
   throw new Error('--config parameter is required');
@@ -42,7 +47,8 @@ if ('occurances' in args) {
   args.occurances = true;
 }
 
-const config = require(currentDir + '/' + args.config);
+const configPath = currentDir + '/' + args.config;
+const config = require(`${configPath}`);
 
 // --config
 // --t
@@ -57,7 +63,7 @@ async function main() {
   const sourcePaths = await readSourcePaths();
   const reports = {};
 
-  for (i = 0; i < sourcePaths.length; i++) {
+  for (let i = 0; i < sourcePaths.length; i++) {
     const { componentName, componentNameL, dir } = parseComponentPath(sourcePaths[i]);
 
     if (!args.t || (componentNameL + '.test.tsx').match(args.t)) {
@@ -201,9 +207,8 @@ function detectPropPattern(sourceCode, prop) {
       const regexp = new RegExp(`([^a-zA-Z0-9])(${propPattern})([^a-zA-Z0-9])`, 'g');
       const faultMatch = sourceCode.match(regexp);
       return {
-        type: 'warning',
-        propName,
         type,
+        propName,
         regexp,
         occurances: faultMatch ? faultMatch.length : 0
       };
@@ -262,7 +267,7 @@ function replacePattern(pattern) {
   }
 }
 
-function injectFault(sourceCode, pattern, caseIndex) {
+function injectFault(sourceCode: string, pattern: any, caseIndex?: number) {
   let i = 0;
   const replaceFn = replacePattern(pattern);
   let faultCode = sourceCode;
@@ -310,9 +315,20 @@ async function deleteTemporaryFiles() {
   });
 }
 
+type OneTestResult = {
+  type: string;
+  test: string;
+  prop: string;
+  failed: number;
+  errors: number;
+  errorMessage?: string;
+  occurance?: number;
+};
+
 async function runTest(newTestPath, testFilename, propName, occuranceIndex) {
   const jestRes = await jest.runCLI({ _: [`${newTestPath}`] }, [config.jestConfig]);
   const results = jestRes.results;
+  let type;
 
   if (results.numRuntimeErrorTestSuites) {
     type = 'warning';
@@ -324,16 +340,16 @@ async function runTest(newTestPath, testFilename, propName, occuranceIndex) {
     }
   }
 
-  const result = {
+  const result: OneTestResult = {
     type,
     test: testFilename,
     prop: propName,
     failed: results.numFailedTestSuites,
-    error: results.numRuntimeErrorTestSuites,
-    errorMessage: results.numRuntimeErrorTestSuites && results.testResults[0].failureMessage
+    errors: results.numRuntimeErrorTestSuites,
+    errorMessage: results.numRuntimeErrorTestSuites ? results.testResults[0].failureMessage : null
   };
 
-  process.stdout.clearLine();
+  (process.stdout as any).clearLine();
   process.stdout.write('\r' + testFilename + '    ');
 
   if (occuranceIndex !== undefined) {
@@ -342,6 +358,16 @@ async function runTest(newTestPath, testFilename, propName, occuranceIndex) {
 
   return result;
 }
+
+type Result = {
+  type: string;
+  dir: string;
+  problem: string;
+  component: string;
+  prop: string;
+  occurance?: number;
+  problemMessage?: string;
+};
 
 async function runTests() {
   const options = {};
@@ -381,7 +407,7 @@ async function runTests() {
       }
     }
 
-    const result = {
+    const result: Result = {
       type,
       dir,
       problem,
@@ -390,7 +416,7 @@ async function runTests() {
     };
 
     if (occurance) {
-      result.occurance = occurance;
+      result.occurance = Number(occurance);
     }
 
     if (problemMessage) {
@@ -471,7 +497,7 @@ function log(...props) {
 }
 
 function showReport(reports) {
-  process.stdout.clearLine();
+  (process.stdout as any).clearLine();
   process.stdout.write('\r');
 
   Object.keys(reports).forEach(dir => {

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "./bin/",
+    "sourceMap": false,
+    "noImplicitAny": false,
+    "pretty": true,
+    "target": "es2017",
+    "lib": ["es2017"]
+  },
+  "include": ["./src/**/*.ts"],
+  "exclude": ["./src/**/*.spec.ts"]
+}
