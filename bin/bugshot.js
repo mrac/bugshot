@@ -8,8 +8,8 @@ const pathModule = require("path");
 const globCb = require("glob");
 const sh = require("shelljs");
 const arguments_1 = require("./arguments");
+const config_1 = require("./config");
 const glob = util.promisify(globCb);
-const currentDir = sh.pwd().stdout;
 const TEMP_FILE_POSTFIX = 'bugshot-fault';
 process.env.NODE_ENV = 'test';
 // Makes the script crash on unhandled rejections instead of silently
@@ -19,27 +19,21 @@ process.on('unhandledRejection', err => {
     throw err;
 });
 const args = arguments_1.getArguments(process.argv);
-const configPath = currentDir + '/' + args.config;
-const config = require(`${configPath}`);
-// --config
-// --t
-// --p
-// --o
-// --keep
-// --occurances
+const config = config_1.getConfig(args, sh.pwd().stdout);
 main();
 async function main() {
     const sourcePaths = await readSourcePaths();
     const reports = {};
     for (let i = 0; i < sourcePaths.length; i++) {
-        const { componentName, componentNameL, dir } = parseComponentPath(sourcePaths[i]);
+        const sourcePath = sourcePaths[i];
+        const { componentName, componentNameL, dir } = parseComponentPath(sourcePath);
         if (!args.t || (componentNameL + '.test.tsx').match(args.t)) {
-            if (!reports[dir]) {
-                reports[dir] = {};
+            if (!reports[relativeSourcePath(sourcePath)]) {
+                reports[relativeSourcePath(sourcePath)] = {};
             }
             const sourceCode = readSourceFile(dir, componentNameL);
             const testSource = readTestFile(reports, dir, componentNameL);
-            const props = parseProps(reports, dir, sourceCode, componentName);
+            const props = parseProps(reports, sourcePath, sourceCode, componentName);
             if (props && testSource) {
                 await Promise.all(props.map(async (prop) => {
                     const propName = prop.propName;
@@ -55,8 +49,9 @@ async function main() {
                         }
                     }
                     catch (err) {
-                        reports[dir][propName] = {
+                        reports[relativeSourcePath(sourcePath)][propName] = {
                             type: 'warning',
+                            prop: propName,
                             problem: 'fault-injection error',
                             problemMessage: err.message
                         };
@@ -67,10 +62,11 @@ async function main() {
     }
     const testReport = await runTests();
     testReport.results.forEach(result => {
-        if (!reports[result.dir]) {
-            reports[result.dir] = {};
+        const sourcePath = result.sourcePath;
+        if (!reports[relativeSourcePath(sourcePath)]) {
+            reports[relativeSourcePath(sourcePath)] = {};
         }
-        reports[result.dir][result.prop] = result;
+        reports[relativeSourcePath(sourcePath)][result.prop] = result;
     });
     showReport(reports);
     if (!args.keep) {
@@ -79,8 +75,12 @@ async function main() {
 }
 // ------------------------------------------------------------
 async function readSourcePaths() {
-    return await glob(config.sourceFiles, {
-        ignore: config.ignore
+    const sourceFiles = pathModule.normalize(config.dirs.configDir + config.baseDir + config.sourceFiles);
+    const ignoreFiles = config.ignore.map(path => {
+        return pathModule.normalize(config.dirs.configDir + config.baseDir + path);
+    });
+    return await glob(sourceFiles, {
+        ignore: ignoreFiles
     });
 }
 function kebabCase2CamelCase(kebabCase) {
@@ -102,20 +102,21 @@ function readSourceFile(dir, componentNameL) {
 }
 function readTestFile(reports, dir, componentNameL) {
     let testSource;
+    const testPath = `${dir}${componentNameL}.test.tsx`;
+    const sourcePath = `${dir}${componentNameL}.tsx`;
     try {
-        const testFilename = `${dir}${componentNameL}.test.tsx`;
-        const testBuffer = fs.readFileSync(testFilename);
+        const testBuffer = fs.readFileSync(testPath);
         testSource = testBuffer.toString();
     }
     catch (err) {
-        reports[dir]['.'] = {
+        reports[relativeSourcePath(sourcePath)]['.'] = {
             type: 'error',
             problem: 'no test file'
         };
     }
     return testSource;
 }
-function parseProps(reports, dir, sourceCode, componentName) {
+function parseProps(reports, sourcePath, sourceCode, componentName) {
     let props;
     try {
         const propsType = `${componentName}Props`;
@@ -138,7 +139,7 @@ function parseProps(reports, dir, sourceCode, componentName) {
         });
     }
     catch (err) {
-        reports[dir]['.'] = {
+        reports[relativeSourcePath(sourcePath)]['.'] = {
             type: 'warning',
             problem: 'parse error',
             problemMessage: err.message
@@ -246,7 +247,8 @@ async function deleteTemporaryFiles() {
     });
 }
 async function runTest(newTestPath, testFilename, propName, occuranceIndex) {
-    const jestRes = await jest.runCLI({ _: [`${newTestPath}`] }, [config.jestConfig]);
+    const jestConfigPath = pathModule.normalize(config.dirs.configDir + config.baseDir + config.jestConfig);
+    const jestRes = await jest.runCLI({ _: [`${newTestPath}`] }, [jestConfigPath]);
     const results = jestRes.results;
     let type;
     if (results.numRuntimeErrorTestSuites) {
@@ -280,13 +282,14 @@ async function runTests() {
     if (args.t) {
         options['_'] = [args.t];
     }
-    const jestResult = (await jest.runCLI({ options }, [config.jestConfig])).results;
+    const jestConfigPath = pathModule.normalize(config.dirs.configDir + config.baseDir + config.jestConfig);
+    const jestResult = (await jest.runCLI({ options }, [jestConfigPath])).results;
     const errors = jestResult.numRuntimeErrorTestSuites;
     const total = jestResult.numTotalTestSuites;
     const failed = jestResult.numTotalTestSuites - jestResult.numPassedTestSuites;
     const results = jestResult.testResults.map(jestResult => {
         const faultTestFilePath = jestResult.testFilePath;
-        const path = '.' + faultTestFilePath.replace(currentDir, '');
+        const path = faultTestFilePath.replace(config.dirs.currentDir, './');
         const dir = pathModule.parse(path).dir + '/';
         const tempFilename = pathModule.parse(path).name;
         const fragmentsStr = tempFilename.replace(`.${TEMP_FILE_POSTFIX}.test`, '');
@@ -313,6 +316,7 @@ async function runTests() {
         const result = {
             type,
             dir,
+            sourcePath: dir + component + '.tsx',
             problem,
             component,
             prop
@@ -326,7 +330,7 @@ async function runTests() {
         return result;
     });
     const report = {
-        currentDir,
+        currentDir: config.dirs.currentDir,
         total,
         failed,
         coverage: Math.round(100 * failed / total) / 100,
@@ -357,6 +361,7 @@ async function reportPropertySeparateOccurances(reports, dir, sourceCode, testSo
 }
 async function reportProperty(reports, dir, sourceCode, testSource, componentNameL, pattern) {
     let propReport = {};
+    const sourcePath = `${dir}${componentNameL}.tsx`;
     if (replacePattern(pattern)) {
         const filenameFragment = `.${pattern.propName}.${TEMP_FILE_POSTFIX}`;
         const outputFilename = `${componentNameL}${filenameFragment}`;
@@ -368,7 +373,7 @@ async function reportProperty(reports, dir, sourceCode, testSource, componentNam
         // propReport = await runTest(newTestPath, testFilename, pattern.propName);
     }
     else {
-        reports[dir][pattern.propName] = {
+        reports[relativeSourcePath(sourcePath)][pattern.propName] = {
             type: 'warning',
             prop: pattern.propName,
             problem: 'Unrecognised property type',
@@ -389,24 +394,36 @@ function log(...props) {
     console.log(str);
 }
 function showReport(reports) {
+    let lineNumber = 0;
     process.stdout.clearLine();
     process.stdout.write('\r');
-    Object.keys(reports).forEach(dir => {
-        const report = reports[dir];
+    Object.keys(reports).forEach(relativeSourcePath => {
+        const report = reports[relativeSourcePath];
         const general = report['.'];
         if (general && general.type !== 'info') {
-            logReport(general.type, dir, general.problem, general.problemMessage);
+            lineNumber++;
+            logReport(general.type, lineNumber, relativeSourcePath, general.problem, general.problemMessage);
         }
         else {
             Object.keys(report)
                 .map(propName => report[propName])
                 .forEach(propReport => {
                 if (propReport.type !== 'info') {
-                    logReport(propReport.type, dir, propReport.prop, propReport.problem, propReport.problemMessage);
+                    lineNumber++;
+                    logReport(propReport.type, lineNumber, relativeSourcePath, propReport.prop, propReport.problem, propReport.problemMessage);
                 }
             });
         }
     });
+}
+function relativeSourcePath(sourcePath) {
+    if (sourcePath.substr(0, 2) === './') {
+        return sourcePath.slice(2);
+    }
+    else {
+        const basePath = pathModule.normalize(config.dirs.configDir + config.baseDir);
+        return sourcePath.replace(basePath, '');
+    }
 }
 function logReport(type, ...props) {
     switch (type) {
