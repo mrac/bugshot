@@ -19,8 +19,16 @@ export async function getAbsoluteSourcePaths(config: Config): Promise<string[]> 
 }
 
 export function readFile(absolutePath: string): string {
-  const buffer = fs.readFileSync(absolutePath);
-  return buffer.toString();
+  let buffer: Buffer;
+  let text: string;
+
+  try {
+    buffer = fs.readFileSync(absolutePath);
+    text = buffer.toString();
+  } catch (err) {
+    text = null;
+  }
+  return text;
 }
 
 export async function deleteTemporaryFiles(config: Config): Promise<void> {

@@ -40,6 +40,8 @@ async function main() {
 
   for (let i = 0; i < sourcePaths.length; i++) {
     const sourcePath = sourcePaths[i];
+    const testPath = config.sourceFileToTestFileFn(sourcePath, config);
+
     const { componentName, componentNameL, dir } = parseComponentPath(sourcePath);
     if (!args.t || (componentNameL + `.${config.testFileExt}.tsx`).match(args.t)) {
       if (!reports[relativeSourcePath(sourcePath)]) {
@@ -47,7 +49,15 @@ async function main() {
       }
 
       const sourceCode = readFile(sourcePath);
-      const testSource = readTestFile(reports, dir, componentNameL);
+      const testSource = readFile(testPath);
+
+      if (!testSource) {
+        reports[relativeSourcePath(sourcePath)]['.'] = {
+          type: 'error',
+          problem: 'no test'
+        };
+      }
+
       const props = parseProps(reports, sourcePath, sourceCode, componentName);
 
       if (props && testSource) {
@@ -101,23 +111,6 @@ function parseComponentPath(componentPath) {
   const componentName = kebabCase2UpperCamelCase(componentNameL);
   const dir = pathModule.dirname(componentPath) + '/';
   return { dir, componentName, componentNameL };
-}
-
-function readTestFile(reports, dir, componentNameL) {
-  let testSource;
-  const testPath = `${dir}${componentNameL}.${config.testFileExt}.tsx`;
-  const sourcePath = `${dir}${componentNameL}.tsx`;
-
-  try {
-    const testBuffer = fs.readFileSync(testPath);
-    testSource = testBuffer.toString();
-  } catch (err) {
-    reports[relativeSourcePath(sourcePath)]['.'] = {
-      type: 'error',
-      problem: 'no test file'
-    };
-  }
-  return testSource;
 }
 
 function parseProps(reports, sourcePath, sourceCode, componentName) {
@@ -311,9 +304,9 @@ type Result = {
   type: string;
   dir?: string;
   sourcePath?: string;
-  problem: string;
+  problem?: string;
   component?: string;
-  prop: string;
+  prop?: string;
   occurance?: number;
   problemMessage?: string;
 };

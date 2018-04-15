@@ -57,9 +57,8 @@ describe('getAbsoluteSourcePaths', () => {
 
 describe('readFile', () => {
   let sandbox: sinon.SinonSandbox;
-  let readFileSyncStub;
-
   const textMock = 'this is file content';
+  const filePath = '/absolute/path/to/file.tsx';
 
   const bufferMock = {
     toString: () => textMock
@@ -67,7 +66,6 @@ describe('readFile', () => {
 
   beforeEach(() => {
     sandbox = sinon.sandbox.create();
-    readFileSyncStub = sandbox.stub(fs, 'readFileSync').callsFake(() => bufferMock);
   });
 
   afterEach(() => {
@@ -75,10 +73,25 @@ describe('readFile', () => {
   });
 
   it('should read file content', () => {
-    const filePath = '/absolute/path/to/file.tsx';
+    const readFileSyncStub = sandbox.stub(fs, 'readFileSync').callsFake(() => bufferMock);
     const content = readFile(filePath);
     expect(readFileSyncStub).to.have.been.calledWith(filePath);
     expect(content).to.equal(textMock);
+  });
+
+  it('should NOT throw error', () => {
+    const readFileSyncStub = sandbox.stub(fs, 'readFileSync').callsFake(() => {
+      throw new Error('error');
+    });
+    expect(() => readFile(filePath)).not.to.throw();
+  });
+
+  it('should return null on error', () => {
+    const readFileSyncStub = sandbox.stub(fs, 'readFileSync').callsFake(() => {
+      throw new Error('error');
+    });
+    const content = readFile(filePath);
+    expect(content).to.equal(null);
   });
 });
 

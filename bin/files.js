@@ -17,8 +17,16 @@ async function getAbsoluteSourcePaths(config) {
 }
 exports.getAbsoluteSourcePaths = getAbsoluteSourcePaths;
 function readFile(absolutePath) {
-    const buffer = fs.readFileSync(absolutePath);
-    return buffer.toString();
+    let buffer;
+    let text;
+    try {
+        buffer = fs.readFileSync(absolutePath);
+        text = buffer.toString();
+    }
+    catch (err) {
+        text = null;
+    }
+    return text;
 }
 exports.readFile = readFile;
 async function deleteTemporaryFiles(config) {
