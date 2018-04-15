@@ -10,7 +10,7 @@ import * as util from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
 
-import { getAbsoluteSourcePaths, readFile, deleteTemporaryFiles } from './files';
+import { getAbsoluteSourcePaths, readFile, deleteTemporaryFiles, writeFile } from './files';
 import { Config } from './config';
 
 describe('getAbsoluteSourcePaths', () => {
@@ -92,6 +92,26 @@ describe('readFile', () => {
     });
     const content = readFile(filePath);
     expect(content).to.equal(null);
+  });
+});
+
+describe('writeFile', () => {
+  let sandbox: sinon.SinonSandbox;
+  const filePath = '/absolute/path/to/file.tsx';
+  const content = 'this is text';
+
+  beforeEach(() => {
+    sandbox = sinon.sandbox.create();
+  });
+
+  afterEach(() => {
+    sandbox.restore();
+  });
+
+  it('should call writeFileSync', () => {
+    const writeFileSyncStub = sandbox.stub(fs, 'writeFileSync');
+    writeFile(filePath, content);
+    expect(writeFileSyncStub).to.have.been.calledWith(filePath, content);
   });
 });
 

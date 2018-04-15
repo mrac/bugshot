@@ -31,6 +31,10 @@ export function readFile(absolutePath: string): string {
   return text;
 }
 
+export function writeFile(absolutePath: string, text: string): void {
+  fs.writeFileSync(absolutePath, text);
+}
+
 export async function deleteTemporaryFiles(config: Config): Promise<void> {
   const globPr = util.promisify(glob);
   const baseDir = config.baseDir.replace(/\/?$/, '/');

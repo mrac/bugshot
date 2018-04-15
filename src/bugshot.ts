@@ -9,7 +9,7 @@ import * as sh from 'shelljs';
 
 import { getArguments } from './arguments';
 import { getConfig } from './config';
-import { getAbsoluteSourcePaths, readFile, deleteTemporaryFiles } from './files';
+import { getAbsoluteSourcePaths, readFile, deleteTemporaryFiles, writeFile } from './files';
 import { kebabCase2UpperCamelCase } from './strings';
 
 const glob = util.promisify(globCb);
@@ -236,23 +236,10 @@ function injectFault(sourceCode: string, pattern: any, caseIndex?: number) {
   return faultCode;
 }
 
-function writeTestFile(dir, outputFilename, newTestSource) {
-  const newTestFilename = `${outputFilename}.${config.testFileExt}`;
-  const newTestPath = `${dir}${newTestFilename}.tsx`;
-  fs.writeFileSync(newTestPath, newTestSource);
-  return newTestPath;
-}
-
 function generateTestSource(componentNameL, outputFilename, testCode) {
   const testReg = new RegExp(`(import )(.*)( from '\.\/)${componentNameL}(';)`, 'g');
   const newTestSource = testCode.replace(testReg, `$1$2$3${outputFilename}$4`);
   return newTestSource;
-}
-
-function writeSourceFile(dir, outputFilename, faultCode) {
-  const outputPath = `${dir}${outputFilename}.tsx`;
-  fs.writeFileSync(outputPath, faultCode);
-  return outputPath;
 }
 
 type OneTestResult = {
@@ -388,11 +375,15 @@ async function reportPropertySeparateOccurances(reports, dir, sourceCode, testCo
       if (!args.o || Number(args.o) === occuranceIndex + 1) {
         const filenameFragment = `.${pattern.propName}-${occuranceIndex}.${config.faultFileExt}`;
         const outputFilename = `${componentNameL}${filenameFragment}`;
+        const outputPath = `${dir}${outputFilename}.tsx`;
+        const newTestPath = config.sourceFileToTestFileFn(outputPath, config);
 
         const faultCode = injectFault(sourceCode, pattern, occuranceIndex);
-        const outputPath = writeSourceFile(dir, outputFilename, faultCode);
+        writeFile(outputPath, faultCode);
+
         const newTestSource = generateTestSource(componentNameL, outputFilename, testCode);
-        const newTestPath = writeTestFile(dir, outputFilename, newTestSource);
+        writeFile(newTestPath, newTestSource);
+
         const testFilename = `${dir}${componentNameL}.${config.testFileExt}.tsx`;
         const propReport = await runTest(newTestPath, testFilename, pattern.propName, occuranceIndex);
         propReports.push(propReport);
@@ -410,11 +401,15 @@ async function reportProperty(reports, dir, sourceCode, testCode, componentNameL
   if (replacePattern(pattern)) {
     const filenameFragment = `.${pattern.propName}.${config.faultFileExt}`;
     const outputFilename = `${componentNameL}${filenameFragment}`;
+    const outputPath = `${dir}${outputFilename}.tsx`;
+    const newTestPath = config.sourceFileToTestFileFn(outputPath, config);
 
     const faultCode = injectFault(sourceCode, pattern);
-    const outputPath = writeSourceFile(dir, outputFilename, faultCode);
+    writeFile(outputPath, faultCode);
+
     const newTestSource = generateTestSource(componentNameL, outputFilename, testCode);
-    const newTestPath = writeTestFile(dir, outputFilename, newTestSource);
+    writeFile(newTestPath, newTestSource);
+
     const testFilename = `${dir}${componentNameL}.${config.testFileExt}.tsx`;
     // propReport = await runTest(newTestPath, testFilename, pattern.propName);
   } else {
