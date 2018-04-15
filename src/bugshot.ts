@@ -49,9 +49,9 @@ async function main() {
       }
 
       const sourceCode = readFile(sourcePath);
-      const testSource = readFile(testPath);
+      const testCode = readFile(testPath);
 
-      if (!testSource) {
+      if (!testCode) {
         reports[relativeSourcePath(sourcePath)]['.'] = {
           type: 'error',
           problem: 'no test'
@@ -60,7 +60,7 @@ async function main() {
 
       const props = parseProps(reports, sourcePath, sourceCode, componentName);
 
-      if (props && testSource) {
+      if (props && testCode) {
         await Promise.all(
           props.map(async prop => {
             const propName = prop.propName;
@@ -68,9 +68,9 @@ async function main() {
               if (!args.p || propName.toLowerCase() === args.p.toLowerCase()) {
                 const pattern = detectPropPattern(sourceCode, prop);
                 if (args.occurances) {
-                  await reportPropertySeparateOccurances(reports, dir, sourceCode, testSource, componentNameL, pattern);
+                  await reportPropertySeparateOccurances(reports, dir, sourceCode, testCode, componentNameL, pattern);
                 } else {
-                  await reportProperty(reports, dir, sourceCode, testSource, componentNameL, pattern);
+                  await reportProperty(reports, dir, sourceCode, testCode, componentNameL, pattern);
                 }
               }
             } catch (err) {
@@ -243,9 +243,9 @@ function writeTestFile(dir, outputFilename, newTestSource) {
   return newTestPath;
 }
 
-function generateTestSource(componentNameL, outputFilename, testSource) {
+function generateTestSource(componentNameL, outputFilename, testCode) {
   const testReg = new RegExp(`(import )(.*)( from '\.\/)${componentNameL}(';)`, 'g');
-  const newTestSource = testSource.replace(testReg, `$1$2$3${outputFilename}$4`);
+  const newTestSource = testCode.replace(testReg, `$1$2$3${outputFilename}$4`);
   return newTestSource;
 }
 
@@ -381,7 +381,7 @@ async function runTests() {
   return report;
 }
 
-async function reportPropertySeparateOccurances(reports, dir, sourceCode, testSource, componentNameL, pattern) {
+async function reportPropertySeparateOccurances(reports, dir, sourceCode, testCode, componentNameL, pattern) {
   const propReports = [];
   if (replacePattern(pattern)) {
     for (let occuranceIndex = 0; occuranceIndex < pattern.occurances; occuranceIndex++) {
@@ -391,7 +391,7 @@ async function reportPropertySeparateOccurances(reports, dir, sourceCode, testSo
 
         const faultCode = injectFault(sourceCode, pattern, occuranceIndex);
         const outputPath = writeSourceFile(dir, outputFilename, faultCode);
-        const newTestSource = generateTestSource(componentNameL, outputFilename, testSource);
+        const newTestSource = generateTestSource(componentNameL, outputFilename, testCode);
         const newTestPath = writeTestFile(dir, outputFilename, newTestSource);
         const testFilename = `${dir}${componentNameL}.${config.testFileExt}.tsx`;
         const propReport = await runTest(newTestPath, testFilename, pattern.propName, occuranceIndex);
@@ -403,7 +403,7 @@ async function reportPropertySeparateOccurances(reports, dir, sourceCode, testSo
   }
 }
 
-async function reportProperty(reports, dir, sourceCode, testSource, componentNameL, pattern) {
+async function reportProperty(reports, dir, sourceCode, testCode, componentNameL, pattern) {
   let propReport = {};
   const sourcePath = `${dir}${componentNameL}.tsx`;
 
@@ -413,7 +413,7 @@ async function reportProperty(reports, dir, sourceCode, testSource, componentNam
 
     const faultCode = injectFault(sourceCode, pattern);
     const outputPath = writeSourceFile(dir, outputFilename, faultCode);
-    const newTestSource = generateTestSource(componentNameL, outputFilename, testSource);
+    const newTestSource = generateTestSource(componentNameL, outputFilename, testCode);
     const newTestPath = writeTestFile(dir, outputFilename, newTestSource);
     const testFilename = `${dir}${componentNameL}.${config.testFileExt}.tsx`;
     // propReport = await runTest(newTestPath, testFilename, pattern.propName);

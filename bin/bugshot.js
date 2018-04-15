@@ -34,25 +34,25 @@ async function main() {
                 reports[relativeSourcePath(sourcePath)] = {};
             }
             const sourceCode = files_1.readFile(sourcePath);
-            const testSource = files_1.readFile(testPath);
-            if (!testSource) {
+            const testCode = files_1.readFile(testPath);
+            if (!testCode) {
                 reports[relativeSourcePath(sourcePath)]['.'] = {
                     type: 'error',
                     problem: 'no test'
                 };
             }
             const props = parseProps(reports, sourcePath, sourceCode, componentName);
-            if (props && testSource) {
+            if (props && testCode) {
                 await Promise.all(props.map(async (prop) => {
                     const propName = prop.propName;
                     try {
                         if (!args.p || propName.toLowerCase() === args.p.toLowerCase()) {
                             const pattern = detectPropPattern(sourceCode, prop);
                             if (args.occurances) {
-                                await reportPropertySeparateOccurances(reports, dir, sourceCode, testSource, componentNameL, pattern);
+                                await reportPropertySeparateOccurances(reports, dir, sourceCode, testCode, componentNameL, pattern);
                             }
                             else {
-                                await reportProperty(reports, dir, sourceCode, testSource, componentNameL, pattern);
+                                await reportProperty(reports, dir, sourceCode, testCode, componentNameL, pattern);
                             }
                         }
                     }
@@ -199,9 +199,9 @@ function writeTestFile(dir, outputFilename, newTestSource) {
     fs.writeFileSync(newTestPath, newTestSource);
     return newTestPath;
 }
-function generateTestSource(componentNameL, outputFilename, testSource) {
+function generateTestSource(componentNameL, outputFilename, testCode) {
     const testReg = new RegExp(`(import )(.*)( from '\.\/)${componentNameL}(';)`, 'g');
-    const newTestSource = testSource.replace(testReg, `$1$2$3${outputFilename}$4`);
+    const newTestSource = testCode.replace(testReg, `$1$2$3${outputFilename}$4`);
     return newTestSource;
 }
 function writeSourceFile(dir, outputFilename, faultCode) {
@@ -301,7 +301,7 @@ async function runTests() {
     };
     return report;
 }
-async function reportPropertySeparateOccurances(reports, dir, sourceCode, testSource, componentNameL, pattern) {
+async function reportPropertySeparateOccurances(reports, dir, sourceCode, testCode, componentNameL, pattern) {
     const propReports = [];
     if (replacePattern(pattern)) {
         for (let occuranceIndex = 0; occuranceIndex < pattern.occurances; occuranceIndex++) {
@@ -310,7 +310,7 @@ async function reportPropertySeparateOccurances(reports, dir, sourceCode, testSo
                 const outputFilename = `${componentNameL}${filenameFragment}`;
                 const faultCode = injectFault(sourceCode, pattern, occuranceIndex);
                 const outputPath = writeSourceFile(dir, outputFilename, faultCode);
-                const newTestSource = generateTestSource(componentNameL, outputFilename, testSource);
+                const newTestSource = generateTestSource(componentNameL, outputFilename, testCode);
                 const newTestPath = writeTestFile(dir, outputFilename, newTestSource);
                 const testFilename = `${dir}${componentNameL}.${config.testFileExt}.tsx`;
                 const propReport = await runTest(newTestPath, testFilename, pattern.propName, occuranceIndex);
@@ -322,7 +322,7 @@ async function reportPropertySeparateOccurances(reports, dir, sourceCode, testSo
         error(dir + componentNameL + '  - Unrecognised property type: ' + pattern.propName);
     }
 }
-async function reportProperty(reports, dir, sourceCode, testSource, componentNameL, pattern) {
+async function reportProperty(reports, dir, sourceCode, testCode, componentNameL, pattern) {
     let propReport = {};
     const sourcePath = `${dir}${componentNameL}.tsx`;
     if (replacePattern(pattern)) {
@@ -330,7 +330,7 @@ async function reportProperty(reports, dir, sourceCode, testSource, componentNam
         const outputFilename = `${componentNameL}${filenameFragment}`;
         const faultCode = injectFault(sourceCode, pattern);
         const outputPath = writeSourceFile(dir, outputFilename, faultCode);
-        const newTestSource = generateTestSource(componentNameL, outputFilename, testSource);
+        const newTestSource = generateTestSource(componentNameL, outputFilename, testCode);
         const newTestPath = writeTestFile(dir, outputFilename, newTestSource);
         const testFilename = `${dir}${componentNameL}.${config.testFileExt}.tsx`;
         // propReport = await runTest(newTestPath, testFilename, pattern.propName);
