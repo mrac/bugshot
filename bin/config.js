@@ -15,6 +15,14 @@ function getConfig(args, currentDir) {
         throw new Error(`Config ${configPath} json file cannot be parsed.\n${err.message}`);
     }
     config.dirs = { currentDir, configDir };
+    config.faultFileExt = 'bugshot-fault';
+    config.testFileExt = 'test';
+    config.sourceFileToTestFileFn = (sourcePath, config) => sourcePath.replace(/\.([a-zA-Z_-]+)$/, `.${config.testFileExt}.$1`);
+    config.sourceFileToFaultSourceFileFn = (sourcePath, config) => sourcePath.replace(/\.([a-zA-Z_-]+)$/, `.${config.faultFileExt}.$1`);
+    config.testFileToFaultTestFileFn = (testPath, config) => {
+        const regex = new RegExp(`\.(${config.testFileExt})\.([a-zA-Z_-]+)$`);
+        return testPath.replace(regex, `.${config.faultFileExt}.$1.$2`);
+    };
     return config;
 }
 exports.getConfig = getConfig;

@@ -21,6 +21,21 @@ function readFile(absolutePath) {
     return buffer.toString();
 }
 exports.readFile = readFile;
+async function deleteTemporaryFiles(config) {
+    const globPr = util.promisify(glob);
+    const baseDir = config.baseDir.replace(/\/?$/, '/');
+    const sourceFiles = normalize(config.dirs.configDir, baseDir, config.sourceFiles);
+    const sourceFilesGlob = sourceFiles;
+    const testFilesGlob = config.sourceFileToTestFileFn(sourceFilesGlob, config);
+    const faultSourceFilesGlob = config.sourceFileToFaultSourceFileFn(sourceFilesGlob, config);
+    const faultTestFilesGlob = config.testFileToFaultTestFileFn(testFilesGlob, config);
+    const faultSourceFilePaths = await globPr(faultSourceFilesGlob);
+    const faultTestFilePaths = await globPr(faultTestFilesGlob);
+    [...faultSourceFilePaths, ...faultTestFilePaths].forEach(path => {
+        fs.unlinkSync(path);
+    });
+}
+exports.deleteTemporaryFiles = deleteTemporaryFiles;
 function normalize(configDir, baseDir, filepath) {
     return path.normalize(configDir + baseDir + filepath);
 }
