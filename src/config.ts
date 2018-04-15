@@ -23,15 +23,7 @@ export function getConfig(args: Args, currentDir: string): Config {
   currentDir = currentDir.replace(/\/?$/, '/');
   const configPath = currentDir + args.config;
   const configDir = path.normalize(path.dirname(configPath) + '/');
-  const json = fs.readFileSync(configPath, 'utf8');
-
-  let config: Config;
-
-  try {
-    config = JSON.parse(json);
-  } catch (err) {
-    throw new Error(`Config ${configPath} json file cannot be parsed.\n${err.message}`);
-  }
+  const config: Config = require(configPath);
 
   config.dirs = { currentDir, configDir };
   config.faultFileExt = 'bugshot-fault';

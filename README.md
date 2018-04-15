@@ -11,7 +11,7 @@ npm install --save-dev git+https://github.com/mrac/bugshot.git
 ### To run
 
 ```
-./bin/bugshot.js --config=./path/to/my/bugshot.config.json
+./bin/bugshot.js --config=./path/to/my/bugshot.config.js
 ```
 
 ### Parameters
@@ -21,7 +21,7 @@ npm install --save-dev git+https://github.com/mrac/bugshot.git
 A single component file.
 
 ```
-./bin/bugshot.js --config=./path/to/my/bugshot.config.json --t=my-text-area
+./bin/bugshot.js --config=./path/to/my/bugshot.config.js --t=my-text-area
 ```
 
 #### p
@@ -29,17 +29,17 @@ A single component file.
 A single component parameter.
 
 ```
-./bin/bugshot.js --config=./path/to/my/bugshot.config.json --t=my-text-area --p=children
+./bin/bugshot.js --config=./path/to/my/bugshot.config.js --t=my-text-area --p=children
 ```
 
 ### Config example
 
 ```
-{
-  "baseDir": "../..",
-  "jestConfig: "./path/to/my/jest.config.js",
-  "sourceFiles: "./src/client/components/common/**/*.tsx",
-  "ignore": [
+module.exports = {
+  baseDir: "../..",
+  jestConfig: "./path/to/my/jest.config.js",
+  sourceFiles: "./src/client/components/common/**/*.tsx",
+  ignore: [
     "./src/client/components/common/**/*.bugshot-fault.tsx",
     "./src/client/components/common/**/*.bugshot-fault.test.tsx",
     "./src/client/components/common/**/*.story.tsx",
@@ -47,5 +47,5 @@ A single component parameter.
     "./src/client/components/common/**/*-styles.ts",
     "./src/client/components/common/**/*-styles.tsx"
   ]
-}
+};
 ```
