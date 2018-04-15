@@ -10,6 +10,7 @@ const sh = require("shelljs");
 const arguments_1 = require("./arguments");
 const config_1 = require("./config");
 const files_1 = require("./files");
+const strings_1 = require("./strings");
 const glob = util.promisify(globCb);
 process.env.NODE_ENV = 'test';
 // Makes the script crash on unhandled rejections instead of silently
@@ -74,14 +75,9 @@ async function main() {
     }
 }
 // ------------------------------------------------------------
-function kebabCase2CamelCase(kebabCase) {
-    const words = kebabCase.split('-');
-    const capitalizedWords = words.map(word => word[0].toUpperCase() + word.substr(1).toLowerCase());
-    return capitalizedWords.join('');
-}
 function parseComponentPath(componentPath) {
     const componentNameL = pathModule.parse(componentPath).name;
-    const componentName = kebabCase2CamelCase(componentNameL);
+    const componentName = strings_1.kebabCase2UpperCamelCase(componentNameL);
     const dir = pathModule.dirname(componentPath) + '/';
     return { dir, componentName, componentNameL };
 }

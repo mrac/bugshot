@@ -10,6 +10,7 @@ import * as sh from 'shelljs';
 import { getArguments } from './arguments';
 import { getConfig } from './config';
 import { getAbsoluteSourcePaths, readFile, deleteTemporaryFiles } from './files';
+import { kebabCase2UpperCamelCase } from './strings';
 
 const glob = util.promisify(globCb);
 
@@ -95,15 +96,9 @@ async function main() {
 
 // ------------------------------------------------------------
 
-function kebabCase2CamelCase(kebabCase) {
-  const words = kebabCase.split('-');
-  const capitalizedWords = words.map(word => word[0].toUpperCase() + word.substr(1).toLowerCase());
-  return capitalizedWords.join('');
-}
-
 function parseComponentPath(componentPath) {
   const componentNameL = pathModule.parse(componentPath).name;
-  const componentName = kebabCase2CamelCase(componentNameL);
+  const componentName = kebabCase2UpperCamelCase(componentNameL);
   const dir = pathModule.dirname(componentPath) + '/';
   return { dir, componentName, componentNameL };
 }
