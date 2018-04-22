@@ -7,16 +7,16 @@ export type Config = {
   baseDir: string; // relative to config file
   jestConfig: string; // relative to baseDir (path)
   sourceFiles: string; // relative to baseDir (glob path)
-  ignore: string[]; // relative to baseDir (glob paths)
-  dirs: {
+  ignore?: string[]; // relative to baseDir (glob paths)
+  dirs?: {
     currentDir: string; // absolute
     configDir: string; // absolute
   };
-  faultFileExt: string; // [a-zA-Z-_]+
-  testFileExt: string; // [a-zA-Z-_]+
-  sourceFileToTestFileFn: (sourcePath: string, config: Config) => string; // absolute, relative, glob
-  sourceFileToFaultSourceFileFn: (sourcePath: string, config: Config) => string; // absolute, relative, glob
-  testFileToFaultTestFileFn: (sourcePath: string, config: Config) => string; // absolute, relative, glob
+  faultFileExt?: string; // [a-zA-Z-_]+
+  testFileExt?: string; // [a-zA-Z-_]+
+  sourceFileToTestFileFn?: (sourcePath: string, config: Config) => string; // absolute, relative, glob
+  sourceFileToFaultSourceFileFn?: (sourcePath: string, config: Config) => string; // absolute, relative, glob
+  testFileToFaultTestFileFn?: (sourcePath: string, config: Config) => string; // absolute, relative, glob
 };
 
 export function getConfig(args: Args, currentDir: string): Config {
@@ -24,6 +24,20 @@ export function getConfig(args: Args, currentDir: string): Config {
   const configPath = currentDir + args.config;
   const configDir = path.normalize(path.dirname(configPath) + '/');
   const config: Config = require(configPath);
+
+  if (!config.baseDir) {
+    throw new Error('Bugshot: config.baseDir is required.');
+  }
+
+  config.baseDir = config.baseDir.replace(/\/?$/, '/');
+
+  if (!config.jestConfig) {
+    throw new Error('Bugshot: config.jestConfig is required.');
+  }
+
+  if (!config.sourceFiles) {
+    throw new Error('Bugshot: config.sourceFiles is required.');
+  }
 
   config.dirs = { currentDir, configDir };
   config.faultFileExt = 'bugshot-fault';

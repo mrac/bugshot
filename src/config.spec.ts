@@ -10,13 +10,14 @@ import * as sh from 'shelljs';
 import { getConfig, Config } from './config';
 
 describe('getConfig', () => {
-  const configMock = { baseDir: 'a', jestConfig: 'b', sourceFiles: 'c', ignore: ['a', 'b'] };
+  let configMock;
   const args = { config: 'conf/a.js' };
   const currentDir = '/current/dir';
   let sandbox: sinon.SinonSandbox;
   let readFileStub;
 
   beforeEach(() => {
+    configMock = { baseDir: 'a/', jestConfig: 'b', sourceFiles: 'c', ignore: ['d', 'e'] };
     mockRequire('/current/dir/conf/a.js', configMock);
     sandbox = sinon.sandbox.create();
   });
@@ -28,10 +29,36 @@ describe('getConfig', () => {
 
   it('should return config parameters', () => {
     const config = getConfig(args, currentDir);
-    expect(config.baseDir).to.equal('a');
+    expect(config.baseDir).to.equal('a/');
     expect(config.jestConfig).to.equal('b');
     expect(config.sourceFiles).to.equal('c');
-    expect(config.ignore).to.deep.equal(['a', 'b']);
+    expect(config.ignore).to.deep.equal(['d', 'e']);
+  });
+
+  it('should add trailing slash to baseDir', () => {
+    configMock = { baseDir: 'a', jestConfig: 'b', sourceFiles: 'c', ignore: ['d', 'e'] };
+    mockRequire('/current/dir/conf/a.js', configMock);
+
+    const config = getConfig(args, currentDir);
+    expect(config.baseDir).to.equal('a/');
+  });
+
+  it('should throw error if baseDir not defined', () => {
+    configMock = { baseDir: undefined, jestConfig: 'b', sourceFiles: 'c', ignore: ['d', 'e'] };
+    mockRequire('/current/dir/conf/a.js', configMock);
+    expect(() => getConfig(args, currentDir)).to.throw();
+  });
+
+  it('should throw error if jestConfig not defined', () => {
+    configMock = { baseDir: 'a/', jestConfig: undefined, sourceFiles: 'c', ignore: ['d', 'e'] };
+    mockRequire('/current/dir/conf/a.js', configMock);
+    expect(() => getConfig(args, currentDir)).to.throw();
+  });
+
+  it('should throw error if baseDir not defined', () => {
+    configMock = { baseDir: 'a/', jestConfig: 'b', sourceFiles: undefined, ignore: ['d', 'e'] };
+    mockRequire('/current/dir/conf/a.js', configMock);
+    expect(() => getConfig(args, currentDir)).to.throw();
   });
 
   describe('extra parameters', () => {

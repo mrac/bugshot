@@ -6,6 +6,16 @@ function getConfig(args, currentDir) {
     const configPath = currentDir + args.config;
     const configDir = path.normalize(path.dirname(configPath) + '/');
     const config = require(configPath);
+    if (!config.baseDir) {
+        throw new Error('Bugshot: config.baseDir is required.');
+    }
+    config.baseDir = config.baseDir.replace(/\/?$/, '/');
+    if (!config.jestConfig) {
+        throw new Error('Bugshot: config.jestConfig is required.');
+    }
+    if (!config.sourceFiles) {
+        throw new Error('Bugshot: config.sourceFiles is required.');
+    }
     config.dirs = { currentDir, configDir };
     config.faultFileExt = 'bugshot-fault';
     config.testFileExt = 'test';
