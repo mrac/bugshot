@@ -9,10 +9,11 @@ import { parseParams } from './params';
 
 describe('parseParams', () => {
   it('should return commandline parameters', () => {
-    const argv = ['node', './my-script.js', '--name=10', '-t=something/s.js'];
+    const argv = ['node', './my-script.js', '--name=10', '-t=something/s.js', '--fast'];
     expect(parseParams(argv)).to.deep.equal({
       name: '10',
-      t: 'something/s.js'
+      t: 'something/s.js',
+      fast: undefined
     });
   });
 });
