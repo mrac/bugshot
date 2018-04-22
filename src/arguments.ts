@@ -13,7 +13,7 @@ export function getArguments(argv: string[]): Args {
   const args = parseParams<Args>(argv);
 
   if (!args.config) {
-    throw new Error('--config parameter is required');
+    throw new Error('Bugshot: --config parameter is required.');
   }
 
   if ('keep' in args) {

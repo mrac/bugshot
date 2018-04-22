@@ -9,7 +9,7 @@ export async function getAbsoluteSourcePaths(config: Config): Promise<string[]> 
   const baseDir = config.baseDir.replace(/\/?$/, '/');
   const sourceFiles = normalize(config.dirs.configDir, baseDir, config.sourceFiles);
 
-  const ignoreFilePaths = config.ignore.map(ignorePath => {
+  const ignoreFilePaths = (config.ignore || []).map(ignorePath => {
     return normalize(config.dirs.configDir, baseDir, ignorePath);
   });
 

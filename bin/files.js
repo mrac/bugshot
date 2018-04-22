@@ -8,7 +8,7 @@ async function getAbsoluteSourcePaths(config) {
     const globPr = util.promisify(glob);
     const baseDir = config.baseDir.replace(/\/?$/, '/');
     const sourceFiles = normalize(config.dirs.configDir, baseDir, config.sourceFiles);
-    const ignoreFilePaths = config.ignore.map(ignorePath => {
+    const ignoreFilePaths = (config.ignore || []).map(ignorePath => {
         return normalize(config.dirs.configDir, baseDir, ignorePath);
     });
     return await globPr(sourceFiles, {

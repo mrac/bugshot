@@ -4,7 +4,7 @@ const params_1 = require("./params");
 function getArguments(argv) {
     const args = params_1.parseParams(argv);
     if (!args.config) {
-        throw new Error('--config parameter is required');
+        throw new Error('Bugshot: --config parameter is required.');
     }
     if ('keep' in args) {
         args.keep = true;
