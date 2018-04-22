@@ -115,5 +115,17 @@ describe('getConfig', () => {
       testPath = './src/**/*-something.zzzz.ts';
       expect(config.testFileToFaultTestFileFn(testPath, config)).to.equal('./src/**/*-something.zzzz.ts');
     });
+
+    it('should return default sourceFileToFaultTestFileFn', () => {
+      const config = getConfig(args, currentDir);
+      config.faultFileExt = 'abc';
+      config.testFileExt = 'xyz';
+
+      let sourcePath = './src/**/*.tsx';
+      expect(config.sourceFileToFaultTestFileFn(sourcePath, config)).to.equal('./src/**/*.abc.xyz.tsx');
+
+      sourcePath = './src/**/*-something.ts';
+      expect(config.sourceFileToFaultTestFileFn(sourcePath, config)).to.equal('./src/**/*-something.abc.xyz.ts');
+    });
   });
 });

@@ -25,6 +25,9 @@ function getConfig(args, currentDir) {
         const regex = new RegExp(`\.(${config.testFileExt})\.([a-zA-Z0-9_-]+)$`);
         return testPath.replace(regex, `.${config.faultFileExt}.$1.$2`);
     };
+    config.sourceFileToFaultTestFileFn = (sourcePath, config) => {
+        return config.testFileToFaultTestFileFn(config.sourceFileToTestFileFn(sourcePath, config), config);
+    };
     return config;
 }
 exports.getConfig = getConfig;

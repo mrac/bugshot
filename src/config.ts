@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { Config as JestConfig } from 'jest';
 
 import { Args } from './arguments';
 
@@ -8,6 +9,7 @@ export type Config = {
   jestConfig: string; // relative to baseDir (path)
   sourceFiles: string; // relative to baseDir (glob path)
   ignore?: string[]; // relative to baseDir (glob paths)
+  jest?: JestConfig;
   dirs?: {
     currentDir: string; // absolute
     configDir: string; // absolute
@@ -17,6 +19,7 @@ export type Config = {
   sourceFileToTestFileFn?: (sourcePath: string, config: Config) => string; // absolute, relative, glob
   sourceFileToFaultSourceFileFn?: (sourcePath: string, config: Config) => string; // absolute, relative, glob
   testFileToFaultTestFileFn?: (sourcePath: string, config: Config) => string; // absolute, relative, glob
+  sourceFileToFaultTestFileFn?: (sourcePath: string, config: Config) => string; // absolute, relative, glob
 };
 
 export function getConfig(args: Args, currentDir: string): Config {
@@ -52,6 +55,10 @@ export function getConfig(args: Args, currentDir: string): Config {
   config.testFileToFaultTestFileFn = (testPath: string, config: Config) => {
     const regex = new RegExp(`\.(${config.testFileExt})\.([a-zA-Z0-9_-]+)$`);
     return testPath.replace(regex, `.${config.faultFileExt}.$1.$2`);
+  };
+
+  config.sourceFileToFaultTestFileFn = (sourcePath: string, config: Config) => {
+    return config.testFileToFaultTestFileFn(config.sourceFileToTestFileFn(sourcePath, config), config);
   };
 
   return config;
