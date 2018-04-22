@@ -8,7 +8,11 @@ async function getAbsoluteSourcePaths(config) {
     const globPr = util.promisify(glob);
     const baseDir = config.baseDir;
     const sourceFiles = normalize(config.dirs.configDir, baseDir, config.sourceFiles);
-    const defaultIgnore = [`./**/*.${config.faultFileExt}.*`, `./**/*.${config.faultFileExt}.${config.testFileExt}.*`];
+    const defaultIgnore = [
+        config.sourceFileToFaultSourceFileFn(config.sourceFiles, config),
+        config.sourceFileToFaultTestFileFn(config.sourceFiles, config),
+        config.sourceFileToTestFileFn(config.sourceFiles, config)
+    ];
     const ignoreFilePaths = [...defaultIgnore, ...(config.ignore || [])].map(ignorePath => {
         return normalize(config.dirs.configDir, baseDir, ignorePath);
     });

@@ -41,9 +41,7 @@ module.exports = {
   sourceFiles: "./src/client/components/common/**/*.tsx",
   ignore: [
     "./src/client/components/common/**/*.story.tsx",
-    "./src/client/components/common/**/*.test.tsx",
-    "./src/client/components/common/**/*-styles.ts",
-    "./src/client/components/common/**/*-styles.tsx"
+    "./src/client/components/common/**/*-styles.{ts,tsx}"
   ]
 };
 ```

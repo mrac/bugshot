@@ -24,8 +24,9 @@ describe('getAbsoluteSourcePaths', () => {
     dirs: {
       configDir: '/absolute/config/dir/'
     },
-    faultFileExt: 'fault-file',
-    testFileExt: 'test-file'
+    sourceFileToTestFileFn: (sourcePath: string, config: Config) => sourcePath + '_test',
+    sourceFileToFaultSourceFileFn: (sourcePath: string, config: Config) => sourcePath + '_fault',
+    sourceFileToFaultTestFileFn: (sourcePath: string, config: Config) => sourcePath + '_testfault'
   } as Config;
 
   beforeEach(() => {
@@ -48,8 +49,9 @@ describe('getAbsoluteSourcePaths', () => {
     const sourcePaths = await getAbsoluteSourcePaths(config);
     expect(globStub).to.have.been.calledWith('/absolute/path/to/sourcefiles/**/*.tsx', {
       ignore: [
-        '/absolute/**/*.fault-file.*',
-        '/absolute/**/*.fault-file.test-file.*',
+        '/absolute/path/to/sourcefiles/**/*.tsx_fault',
+        '/absolute/path/to/sourcefiles/**/*.tsx_testfault',
+        '/absolute/path/to/sourcefiles/**/*.tsx_test',
         '/absolute/path/to/sourcefiles/but/not/this.tsx'
       ]
     });
