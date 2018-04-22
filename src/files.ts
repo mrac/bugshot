@@ -6,10 +6,11 @@ import * as fs from 'fs';
 
 export async function getAbsoluteSourcePaths(config: Config): Promise<string[]> {
   const globPr = util.promisify(glob);
-  const baseDir = config.baseDir.replace(/\/?$/, '/');
+  const baseDir = config.baseDir;
   const sourceFiles = normalize(config.dirs.configDir, baseDir, config.sourceFiles);
+  const defaultIgnore = [`./**/*.${config.faultFileExt}.*`, `./**/*.${config.faultFileExt}.${config.testFileExt}.*`];
 
-  const ignoreFilePaths = (config.ignore || []).map(ignorePath => {
+  const ignoreFilePaths = [...defaultIgnore, ...(config.ignore || [])].map(ignorePath => {
     return normalize(config.dirs.configDir, baseDir, ignorePath);
   });
 
@@ -37,7 +38,7 @@ export function writeFile(absolutePath: string, text: string): void {
 
 export async function deleteTemporaryFiles(config: Config): Promise<void> {
   const globPr = util.promisify(glob);
-  const baseDir = config.baseDir.replace(/\/?$/, '/');
+  const baseDir = config.baseDir;
   const sourceFiles = normalize(config.dirs.configDir, baseDir, config.sourceFiles);
 
   const sourceFilesGlob = sourceFiles;

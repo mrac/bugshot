@@ -12,8 +12,8 @@ export type Config = {
     currentDir: string; // absolute
     configDir: string; // absolute
   };
-  faultFileExt?: string; // [a-zA-Z-_]+
-  testFileExt?: string; // [a-zA-Z-_]+
+  faultFileExt?: string; // [a-zA-Z0-9-_]+
+  testFileExt?: string; // [a-zA-Z0-9-_]+
   sourceFileToTestFileFn?: (sourcePath: string, config: Config) => string; // absolute, relative, glob
   sourceFileToFaultSourceFileFn?: (sourcePath: string, config: Config) => string; // absolute, relative, glob
   testFileToFaultTestFileFn?: (sourcePath: string, config: Config) => string; // absolute, relative, glob
@@ -44,13 +44,13 @@ export function getConfig(args: Args, currentDir: string): Config {
   config.testFileExt = 'test';
 
   config.sourceFileToTestFileFn = (sourcePath: string, config: Config) =>
-    sourcePath.replace(/\.([a-zA-Z_-]+)$/, `.${config.testFileExt}.$1`);
+    sourcePath.replace(/\.([a-zA-Z0-9_-]+)$/, `.${config.testFileExt}.$1`);
 
   config.sourceFileToFaultSourceFileFn = (sourcePath: string, config: Config) =>
-    sourcePath.replace(/\.([a-zA-Z_-]+)$/, `.${config.faultFileExt}.$1`);
+    sourcePath.replace(/\.([a-zA-Z0-9_-]+)$/, `.${config.faultFileExt}.$1`);
 
   config.testFileToFaultTestFileFn = (testPath: string, config: Config) => {
-    const regex = new RegExp(`\.(${config.testFileExt})\.([a-zA-Z_-]+)$`);
+    const regex = new RegExp(`\.(${config.testFileExt})\.([a-zA-Z0-9_-]+)$`);
     return testPath.replace(regex, `.${config.faultFileExt}.$1.$2`);
   };
 

@@ -6,9 +6,10 @@ const util = require("util");
 const fs = require("fs");
 async function getAbsoluteSourcePaths(config) {
     const globPr = util.promisify(glob);
-    const baseDir = config.baseDir.replace(/\/?$/, '/');
+    const baseDir = config.baseDir;
     const sourceFiles = normalize(config.dirs.configDir, baseDir, config.sourceFiles);
-    const ignoreFilePaths = (config.ignore || []).map(ignorePath => {
+    const defaultIgnore = [`./**/*.${config.faultFileExt}.*`, `./**/*.${config.faultFileExt}.${config.testFileExt}.*`];
+    const ignoreFilePaths = [...defaultIgnore, ...(config.ignore || [])].map(ignorePath => {
         return normalize(config.dirs.configDir, baseDir, ignorePath);
     });
     return await globPr(sourceFiles, {
@@ -35,7 +36,7 @@ function writeFile(absolutePath, text) {
 exports.writeFile = writeFile;
 async function deleteTemporaryFiles(config) {
     const globPr = util.promisify(glob);
-    const baseDir = config.baseDir.replace(/\/?$/, '/');
+    const baseDir = config.baseDir;
     const sourceFiles = normalize(config.dirs.configDir, baseDir, config.sourceFiles);
     const sourceFilesGlob = sourceFiles;
     const testFilesGlob = config.sourceFileToTestFileFn(sourceFilesGlob, config);

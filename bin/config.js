@@ -19,10 +19,10 @@ function getConfig(args, currentDir) {
     config.dirs = { currentDir, configDir };
     config.faultFileExt = 'bugshot-fault';
     config.testFileExt = 'test';
-    config.sourceFileToTestFileFn = (sourcePath, config) => sourcePath.replace(/\.([a-zA-Z_-]+)$/, `.${config.testFileExt}.$1`);
-    config.sourceFileToFaultSourceFileFn = (sourcePath, config) => sourcePath.replace(/\.([a-zA-Z_-]+)$/, `.${config.faultFileExt}.$1`);
+    config.sourceFileToTestFileFn = (sourcePath, config) => sourcePath.replace(/\.([a-zA-Z0-9_-]+)$/, `.${config.testFileExt}.$1`);
+    config.sourceFileToFaultSourceFileFn = (sourcePath, config) => sourcePath.replace(/\.([a-zA-Z0-9_-]+)$/, `.${config.faultFileExt}.$1`);
     config.testFileToFaultTestFileFn = (testPath, config) => {
-        const regex = new RegExp(`\.(${config.testFileExt})\.([a-zA-Z_-]+)$`);
+        const regex = new RegExp(`\.(${config.testFileExt})\.([a-zA-Z0-9_-]+)$`);
         return testPath.replace(regex, `.${config.faultFileExt}.$1.$2`);
     };
     return config;

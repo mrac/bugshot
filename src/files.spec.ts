@@ -17,13 +17,15 @@ describe('getAbsoluteSourcePaths', () => {
   let sandbox: sinon.SinonSandbox;
   let globStub, promisifyStub, sourcePathsMock;
 
-  const config = {
-    baseDir: '../..',
+  const config: Config = {
+    baseDir: '../../',
     sourceFiles: './path/to/sourcefiles/**/*.tsx',
     ignore: ['./path/to/sourcefiles/but/not/this.tsx'],
     dirs: {
       configDir: '/absolute/config/dir/'
-    }
+    },
+    faultFileExt: 'fault-file',
+    testFileExt: 'test-file'
   } as Config;
 
   beforeEach(() => {
@@ -45,7 +47,11 @@ describe('getAbsoluteSourcePaths', () => {
   it('should call glob', async () => {
     const sourcePaths = await getAbsoluteSourcePaths(config);
     expect(globStub).to.have.been.calledWith('/absolute/path/to/sourcefiles/**/*.tsx', {
-      ignore: ['/absolute/path/to/sourcefiles/but/not/this.tsx']
+      ignore: [
+        '/absolute/**/*.fault-file.*',
+        '/absolute/**/*.fault-file.test-file.*',
+        '/absolute/path/to/sourcefiles/but/not/this.tsx'
+      ]
     });
   });
 
@@ -123,7 +129,7 @@ describe('deleteTemporaryFiles', () => {
   let promisifyStub: sinon.SinonStub;
 
   const config = {
-    baseDir: '../..',
+    baseDir: '../../',
     sourceFiles: './path/to/sourcefiles/**/*.tsx',
     ignore: ['./path/to/sourcefiles/but/not/this.tsx'],
     dirs: {
