@@ -199,7 +199,11 @@ function generateTestSource(componentNameL, outputFilename, testCode) {
 }
 async function runTest(newTestPath, testFilename, propName, occuranceIndex) {
     const jestConfigPath = pathModule.normalize(config.dirs.configDir + config.baseDir + config.jestConfig);
-    const jestRes = await jest.runCLI({ _: [`${newTestPath}`] }, [jestConfigPath]);
+    const testMatch = [
+        pathModule.normalize(config.dirs.configDir + config.baseDir + config.sourceFileToFaultTestFileFn(config.sourceFiles, config))
+    ];
+    const options = Object.assign({ testMatch, reporters: [], collectCoverage: false, notify: false, _: [`${newTestPath}`] }, (config.jest || {}));
+    const jestRes = await jest.runCLI(options, [jestConfigPath]);
     const results = jestRes.results;
     let type;
     if (results.numRuntimeErrorTestSuites) {
@@ -229,12 +233,15 @@ async function runTest(newTestPath, testFilename, propName, occuranceIndex) {
     return result;
 }
 async function runTests() {
-    const options = {};
+    const jestConfigPath = pathModule.normalize(config.dirs.configDir + config.baseDir + config.jestConfig);
+    const testMatch = [
+        pathModule.normalize(config.dirs.configDir + config.baseDir + config.sourceFileToFaultTestFileFn(config.sourceFiles, config))
+    ];
+    const options = Object.assign({ testMatch, reporters: [], collectCoverage: false, notify: false }, (config.jest || {}));
     if (args.t) {
         options['_'] = [args.t];
     }
-    const jestConfigPath = pathModule.normalize(config.dirs.configDir + config.baseDir + config.jestConfig);
-    const jestResult = (await jest.runCLI({ options }, [jestConfigPath])).results;
+    const jestResult = (await jest.runCLI(options, [jestConfigPath])).results;
     const errors = jestResult.numRuntimeErrorTestSuites;
     const total = jestResult.numTotalTestSuites;
     const failed = jestResult.numTotalTestSuites - jestResult.numPassedTestSuites;
