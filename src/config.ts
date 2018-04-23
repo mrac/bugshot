@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { Config as JestConfig } from 'jest';
 
 import { Args } from './arguments';
 
@@ -9,7 +8,7 @@ export type Config = {
   jestConfig: string; // relative to baseDir (path)
   sourceFiles: string; // relative to baseDir (glob path)
   ignore?: string[]; // relative to baseDir (glob paths)
-  jest?: JestConfig;
+  jest?: any; // Jest Config properties
   dirs?: {
     currentDir: string; // absolute
     configDir: string; // absolute

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Fault-injection for React-TypeScript-Jest testing",
   "main": "./src/bugshot.ts",
+  "types": "./src/bugshot.d.ts",
   "bin": {
     "bugshot": "./bin/bugshot.js"
   },
